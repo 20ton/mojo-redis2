@@ -24,7 +24,7 @@ sub start {
   $config{daemonize}                   ||= 'no';
   $config{databases}                   ||= 16;
   $config{loglevel}                    ||= SERVER_DEBUG ? 'verbose' : 'warning';
-  $config{port}                        ||= Mojo::IOLoop::Server->generate_port;
+  $config{port}                        ||= exists($config{unixsocket}) ? 0 : Mojo::IOLoop::Server->generate_port;
   $config{rdbchecksum}                 ||= 'no';
   $config{requirepass}                 ||= '';
   $config{stop_writes_on_bgsave_error} ||= 'no';

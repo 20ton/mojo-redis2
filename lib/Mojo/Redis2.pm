@@ -36,7 +36,7 @@ sub new {
   $self->{name} = Mojo::Util::steady_time if DEBUG;
 
   if ($self->{url} and ref $self->{url} eq '') {
-    $self->{url} = "redis://$self->{url}" unless $self->{url} =~ /^redis:/;
+    $self->{url} = "redis://$self->{url}" unless $self->{url} =~ /^redis(?:\+unix)?:/i;
     $self->{url} = Mojo::URL->new($self->{url});
   }
 
@@ -119,12 +119,20 @@ sub _connect {
   my $url      = $self->url;
   my $db       = $url->path->[0];
   my @userinfo = split /:/, +($url->userinfo // '');
+  my %options;
+
+  if($url->protocol eq 'redis+unix') {
+    $options{path} = $url->host;
+  }
+  else {
+    @options{qw(address port)} = ($url->host, $url->port || DEFAULT_PORT);
+  }
 
   Scalar::Util::weaken($self);
   $c->{protocol} = $self->protocol_class->new(api => 1);
   $c->{name} = "$self->{name}:$c->{group}:$c->{nb}" if DEBUG;
   $c->{id} = $self->_loop($c->{nb})->client(
-    {address => $url->host, port => $url->port || DEFAULT_PORT},
+    \%options,
     sub {
       my ($loop, $err, $stream) = @_;
 
@@ -524,13 +532,17 @@ L<Protocol::Redis::XS> need to be installed manually.
   $url = $self->url;
 
 Holds a L<Mojo::URL> object with the location to the Redis server. Default
-is C<MOJO_REDIS_URL> or "redis://localhost:6379". The L</url> need to be set
+is C<MOJO_REDIS_URL> or "redis://localhost:6379". For UNIX sockets, the path
+must be URL-encoded (see L<Mojo::Util::url_escape>). The L</url> need to be set
 in constructor. Examples:
 
   Mojo::Redis2->new(url => "redis://x:$auth_key\@$server:$port/$database_index");
   Mojo::Redis2->new(url => "redis://10.0.0.42:6379");
   Mojo::Redis2->new(url => "redis://10.0.0.42:6379/1");
   Mojo::Redis2->new(url => "redis://x:s3cret\@10.0.0.42:6379/1");
+  Mojo::Redis2->new(url => "redis+unix://%2Fvar%2Frun%2Fredis%2Fredis.sock");
+  Mojo::Redis2->new(url => "redis+unix://%2Fvar%2Frun%2Fredis%2Fredis.sock/1");
+  Mojo::Redis2->new(url => "redis+unix://" . url_escape("/run/redis/redis.sock"));
 
 =head1 METHODS
 

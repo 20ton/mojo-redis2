@@ -36,6 +36,13 @@ use Test::More;
   Mojo::Redis2->new(url => "redis://x:s3cret\@10.0.0.42:6379/3")->_connect({});
   is_deeply $args[0], {address => '10.0.0.42', port => 6379}, 'protocol, auth, host, port, db';
   is_deeply $args[1]{queue}, [[undef, qw(AUTH s3cret)], [undef, qw(SELECT 3)]], 'auth+select';
+
+  Mojo::Redis2->new(url => "redis+unix://%2Fnonexistent%2Fsocket")->_connect({});
+  is_deeply $args[0], {path => '/nonexistent/socket'}, 'protocol, unix socket path';
+
+  Mojo::Redis2->new(url => "redis+unix://%2Fnonexistent%2Fsocket/2")->_connect({});
+  is_deeply $args[0], {path => '/nonexistent/socket'}, 'protocol, unix socket path, db';
+  is_deeply $args[1]{queue}, [[undef, qw(SELECT 2)]], 'select';
 }
 
 done_testing;
