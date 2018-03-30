@@ -1,5 +1,4 @@
 use Mojo::Base -strict;
-use Mojo::Util qw(url_escape);
 use Mojo::Redis2;
 use Test::More;
 
@@ -7,7 +6,7 @@ plan skip_all => 'Cannot test on Win32' if $^O eq 'MSWin32';
 my $unixsock = './tmp-redis.' . $$ . '.sock';
 plan skip_all => $@ unless eval { Mojo::Redis2::Server->start(unixsocket => $unixsock) };
 
-my $redis = Mojo::Redis2->new(url => 'redis+unix://' . url_escape($unixsock));
+my $redis = Mojo::Redis2->new;
 my ($ping_err, $c, $ping, $get_err, $get);
 
 $redis->on(connection => sub { (my $redis, $c) = @_; });
@@ -39,4 +38,3 @@ is $get, 42, 'got 42';
 is_deeply $redis->del('mojo:redis2:test_scalar'), '1', 'DEL mojo:redis2:test_scalar';
 
 done_testing;
-

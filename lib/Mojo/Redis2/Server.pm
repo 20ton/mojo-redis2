@@ -3,6 +3,7 @@ use feature 'state';
 use Mojo::Asset::File;
 use Mojo::Base -base;
 use Mojo::IOLoop;
+use Mojo::Util qw(url_escape);
 use Time::HiRes ();
 use constant SERVER_DEBUG => $ENV{MOJO_REDIS_SERVER_DEBUG} || 0;
 
@@ -44,7 +45,13 @@ sub start {
   $self->{parent_pid} = $$;
   if ($self->{pid} = fork) {    # parent
     $self->{config} = \%config;
-    $self->{url} = sprintf 'redis://x:%s@%s:%s/', map { $_ // '' } @config{qw( requirepass bind port )};
+    if(exists($config{unixsocket})) {
+      $self->{url} = sprintf 'redis+unix://x:%s@%s/', $config{requirepass} // '', url_escape($config{unixsocket});
+    }
+    else {
+      $self->{url} = sprintf 'redis://x:%s@%s:%s/', map { $_ // '' } @config{qw( requirepass bind port )};
+    }
+
     $self->_wait_for_server_to_start;
     $ENV{MOJO_REDIS_URL} //= $self->{url} if $self->configure_environment;
     return $self;
